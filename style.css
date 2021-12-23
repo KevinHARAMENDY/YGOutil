@@ -1,0 +1,59 @@
+.magie {
+    background-color: #66BA47;
+    color: white;
+}
+
+.piege {
+    background-color: #BB388F;
+    color: white;
+}
+
+.skill {
+    background-color: #0280DD;
+    color: white;
+}
+
+.eff {
+    background-color: #FF9700;
+    color: black;
+}
+
+.norm {
+    background-color: #FADC44;
+    color: black;
+}
+
+.xyz {
+    background-color: black;
+    color: white;
+}
+
+.synchro {
+    background-color: white;
+    color: black;
+}
+
+.fusion {
+    background-color: #7D22F9;
+    color: white;
+}
+
+.lien {
+    background-color: #223FF9;
+    color: white;
+}
+
+.rituel {
+    background-color: #4ABAFF;
+    color: black;
+}
+
+.pendule {
+    background-color: #79D650;
+    color: black;
+}
+
+.jeton {
+    background-color: #ABABAB;
+    color: black;
+}
