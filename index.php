@@ -1,6 +1,8 @@
 <?php
 if (!empty($_POST)) {
     $url = "https://db.ygoprodeck.com/api/v7/cardinfo.php?language=fr";
+
+    if (!empty($_POST["nom"]) && $_POST["search"] == "nom") $url .= "@fname=".$_POST["nom"];
     
     if ($_POST["selectType"] != "undefined") {
         if ($_POST["selectType"] == "Monstre") {
@@ -9,22 +11,19 @@ if (!empty($_POST)) {
             if (!empty($_POST["type"])) $url .= "@race=".$_POST["type"];
             if (!empty($_POST["atk"])) $url .= "@atk=".$_POST["atk"];
             if (!empty($_POST["def"])) $url .= "@def=".$_POST["def"];
-            if (!empty($_POST["nomMonstre"])) $url .= "@fname=".$_POST["nomMonstre"];
     
             if (!empty($_POST["niv"]) && $_POST["selectSpec"] != "Link Monster") $url .= "@level=".$_POST["niv"];
             else if (!empty($_POST["niv"]) && $_POST["selectSpec"] == "Link Monster") $url .= "@linkval=".$_POST["niv"];
         } else if ($_POST["selectType"] == "Skill Card") {
             $url .= "@type=".$_POST["selectType"];
-            if (!empty($_POST["nomSk"])) $url .= "@fname=".$_POST["nomSk"];
             if (!empty($_POST["pour"]) && $_POST["pour"] != "undefined") $url .= "@race=".$_POST["pour"];
         } else {
             $url .= "@type=".$_POST["selectType"];
             if (!empty($_POST["selectSpec"]) && $_POST["selectSpec"] != "undefined") $url .= "@race=".$_POST["selectSpec"];
-            if (!empty($_POST["nomMP"])) $url .= "@fname=".$_POST["nomMP"];
         }
     }
 
-    header("Location: http://localhost/miniProj?apireq=" . $url . "");
+    header("Location: http://localhost/YGOutil?apireq=" . $url . "");
     var_dump($url);
 }
 ?>
@@ -44,7 +43,7 @@ if (!empty($_POST)) {
     <title>TestProj</title>
 </head>
 <body>
-    <div class="ms-4 me-4 mt-4 mb-4">
+    <div>
         <div class="sticky-top" style="background-color:#989898">
             <form action="" method="POST">
                 <div class="primaire ms-2">
@@ -92,9 +91,16 @@ if (!empty($_POST)) {
                         <option value="continuous" id="piegCont" style="display:none">Continu</option>
                         <option value="counter" id="piegCount" style="display:none">Contre-Piège</option>
                     </select>
-        
-                    <button type="submit" class="btn-dark btn-sm mt-2 me-2" style="float: right">Rechercher</button>
-                
+
+                    <div class="input-group" style="margin-left:900px">
+                        <select name="search" style="width:80px">
+                            <option selected value="nom">Nom</option>
+                            <option value="code">Code</option>
+                        </select>
+                        <input type="text" name="nom" style="width:200px">
+                        <button type="submit">Rechercher</button>
+                    </div>
+
                     <script type="text/javascript">
                         document.getElementById("selectType").addEventListener("change", e => {
                             let etat = document.getElementById("selectType").value;
@@ -138,7 +144,6 @@ if (!empty($_POST)) {
                                     document.getElementById("piegCont").style.display       = "none";
                                     document.getElementById("piegCount").style.display      = "none";
 
-                                    document.getElementById("mp").style.display = "none";
                                     document.getElementById("monstre").style.display = "block";
                                     document.getElementById("skill").style.display = "none";
                                 } else if (etat == "Spell Card") {
@@ -177,7 +182,6 @@ if (!empty($_POST)) {
                                     document.getElementById("piegCount").style.display      = "none";
 
                                     document.getElementById("monstre").style.display = "none";
-                                    document.getElementById("mp").style.display = "block";
                                     document.getElementById("skill").style.display = "none";
                                 } else if (etat == "Trap Card") {
                                     document.getElementById("norm").style.display           = "none";
@@ -215,14 +219,12 @@ if (!empty($_POST)) {
                                     document.getElementById("piegCount").style.display      = "block";
 
                                     document.getElementById("monstre").style.display = "none";
-                                    document.getElementById("mp").style.display = "block";
                                     document.getElementById("skill").style.display = "none";
                                 }
                             } else if (etat == "Skill Card") {
                                 document.getElementById("selectSpec").disabled = true;
                                 document.getElementById("secondaire").style.display = "block";
                                 document.getElementById("monstre").style.display = "none";
-                                document.getElementById("mp").style.display = "none";
                                 document.getElementById("skill").style.display = "block";
                             } else {
                                 document.getElementById("selectSpec").disabled = true;
@@ -293,23 +295,9 @@ if (!empty($_POST)) {
                                 Défense
                                 <input type="number" name="def" class="form-control" style="width:180px">
                             </div>
-                            <div>
-                                Nom
-                                <input type="text" name="nomMonstre" class="form-control" style="width:180px">
-                            </div>
-                        </div>
-                    </div>
-                    <div id="mp" class="ms-2" style="display:none">
-                        <div>
-                            Nom
-                            <input type="text" name="nomMP" class="form-control" style="width:180px">
                         </div>
                     </div>
                     <div id="skill" class="ms-2" style="display:none">
-                        <div>
-                            Nom
-                            <input type="text" name="nomSk" class="form-control" style="width:180px">
-                        </div>
                         <div>
                             Pour
                             <select class="mt-2 form-select form-select-sm mb-3" name="pour" style="width:180px">
@@ -435,6 +423,10 @@ if (!empty($_POST)) {
                     },
                     monstreIsLink(monstre) {
                         return monstre.includes("Link");
+                    },
+                    typeMonstre(type) {
+                        if (type.includes("XYZ")) return "xyz";
+                        else return "eff";
                     },
                     typeContientMagie(type) {
                         return type.includes("Spell");
