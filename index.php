@@ -2,7 +2,9 @@
 if (!empty($_POST)) {
     $url = "https://db.ygoprodeck.com/api/v7/cardinfo.php?language=fr";
 
-    if (!empty($_POST["nom"]) && $_POST["search"] == "nom") $url .= "@fname=".$_POST["nom"];
+    if (!empty($_POST["valSearch"]) && $_POST["search"] == "nom") $url .= "@fname=".$_POST["valSearch"];
+    else if (!empty($_POST["valSearch"]) && $_POST["search"] == "id") $url .= "@id=".$_POST["valSearch"];
+    else if (!empty($_POST["valSearch"]) && $_POST["search"] == "code") $url .= "@ext=".$_POST["valSearch"];
     
     if ($_POST["selectType"] != "undefined") {
         if ($_POST["selectType"] == "Monstre") {
@@ -23,8 +25,8 @@ if (!empty($_POST)) {
         }
     }
 
-    header("Location: http://localhost/YGOutil?apireq=" . $url . "");
-    var_dump($url);
+    $base = explode("/",$_SERVER["REQUEST_URI"]);
+    header("Location: http://localhost/".$base[1]."?apireq=".$url."");
 }
 ?>
 <!DOCTYPE html>
@@ -96,8 +98,9 @@ if (!empty($_POST)) {
                         <select name="search" style="width:80px">
                             <option selected value="nom">Nom</option>
                             <option value="code">Code</option>
+                            <option value="id">Id</option>
                         </select>
-                        <input type="text" name="nom" style="width:200px">
+                        <input type="text" name="valSearch" style="width:200px">
                         <button type="submit">Rechercher</button>
                     </div>
 
@@ -318,84 +321,236 @@ if (!empty($_POST)) {
         </div>
         <div id="recherche" style="display: none">
             <div>
-                <div class="card mb-1" style="width: 20rem; display: inline-block; height: 100rem;" v-for="c of cartes.data">
-                    <div class="row g-0" v-if="typeContientMonstre(c.type)" >
-                        <div class="col-md-4" v-for="i of c.card_images">
-                            <img :src="i.image_url_small" class="card-img-top" />
+                <div class="card mb-1" style="width: 19rem; display: inline-block; height: 100rem;" v-for="c of cartes.data">
+                    <!-- SI PAS RECHERCHE PAR CODE -->
+                    <div v-if="!searchIsCode()">
+                        <!-- SI MONSTRE -->
+                        <div class="row g-0" v-if="typeContientMonstre(c.type)" >
+                            <div class="col-md-4">
+                                <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                <div><b class="card-item">Extensions : </b></div>
+                                <div v-for="s of c.card_sets">
+                                    <div>{{s.set_code}}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{c.name}}</h5>
+                                    <div><b class="card-item">{{c.type}}</b></div>
+                                    <div><b class="card-item">Niveau :</b>&nbsp;<span v-if="monstreIsLink(c.type)">{{c.linkval}}</span><span v-else>{{c.level}}</span></div>
+                                    <div><b class="card-item">Type :</b>&nbsp;{{c.race}}</div>
+                                    <div><b class="card-item">Attribut :</b>&nbsp;{{c.attribute}}</div>
+                                    <div><b class="card-item">Attaque :</b>&nbsp;{{c.atk}}</div>
+                                    <div><b class="card-item" v-if="monstreIsLink(c.type) == false">Défense :</b>&nbsp;{{c.def}}</div>
+                                    <div><b class="card-item">Texte :</b>
+                                        <p>{{ c.desc }}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
+                        <!-- SI MAGIE -->
+                        <div class="row g-0 magie" v-if="typeContientMagie(c.type)">
+                            <div class="col-md-4">
+                                <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                <div><b class="card-item">Extensions : </b></div>
+                                <div v-for="s of c.card_sets">
+                                    <div>{{s.set_code}}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ c.name }}</h5>
+                                    <div><b class="card-item">{{c.race}}&nbsp;{{c.type}}</b></div>
+                                    <div><b class="card-item">Texte :</b>
+                                        <p>{{ c.desc }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- SI PIEGE -->
+                        <div class="row g-0 piege" v-if="typeContientPiege(c.type)">
+                            <div class="col-md-4">
+                                <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                <div><b class="card-item">Extensions : </b></div>
+                                <div v-for="s of c.card_sets">
+                                    <div>{{s.set_code}}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ c.name }}</h5>
+                                    <div><b class="card-item">{{c.race}}&nbsp;{{c.type}}</b></div>
+                                    <div><b class="card-item">Texte :</b>
+                                        <p>{{ c.desc }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- SI SKILL -->
+                        <div class="row g-0 skill" v-if="typeContientSkill(c.type)">
+                            <div class="col-md-4">
+                                <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                <div><b class="card-item">Extensions : </b></div>
+                                <div v-for="s of c.card_sets">
+                                    <div>{{s.set_code}}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ c.name }}</h5>
+                                    <div><b class="card-item">{{c.type}}</b></div>
+                                    <div><b class="card-item">Pour :</b>&nbsp;{{c.race}}</div>
+                                    <div><b class="card-item">Texte :</b>
+                                        <p>{{ c.desc }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- SI TOKEN -->
+                        <div class="row g-0 jeton" v-if="typeContientToken(c.type)">
+                            <div class="col-md-4">
+                                <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                <div><b class="card-item">Extensions : </b></div>
+                                <div v-for="s of c.card_sets">
+                                    <div>{{s.set_code}}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
                                 <h5 class="card-title">{{ c.name }}</h5>
-                                <div><b class="card-item">{{c.type}}</b></div>
-                                <div><b class="card-item">Niveau :</b>&nbsp;<span v-if="monstreIsLink(c.type)">{{c.linkval}}</span><span v-else>{{c.level}}</span></div>
-                                <div><b class="card-item">Type :</b>&nbsp;{{c.race}}</div>
-                                <div><b class="card-item">Attribut :</b>&nbsp;{{c.attribute}}</div>
-                                <div><b class="card-item">Attaque :</b>&nbsp;{{c.atk}}</div>
-                                <div><b class="card-item" v-if="monstreIsLink(c.type) == false">Défense :</b>&nbsp;{{c.def}}</div>
-                                <div><b class="card-item">Texte :</b>
-                                    <p>{{ c.desc }}</p>
+                                    <div><b class="card-item">{{c.type}}</b></div>
+                                    <div><b class="card-item">Niveau :</b>&nbsp;<span v-if="monstreIsLink(c.type)">{{c.linkval}}</span><span v-else>{{c.level}}</span></div>
+                                    <div><b class="card-item">Type :</b>&nbsp;{{c.race}}</div>
+                                    <div><b class="card-item">Attribut :</b>&nbsp;{{c.attribute}}</div>
+                                    <div><b class="card-item">Attaque :</b>&nbsp;{{c.atk}}</div>
+                                    <div><b class="card-item" v-if="monstreIsLink(c.type) == false">Défense :</b>&nbsp;{{c.def}}</div>
+                                    <div><b class="card-item">Texte :</b>
+                                        <p>{{ c.desc }}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="row g-0 magie" v-if="typeContientMagie(c.type)">
-                        <div class="col-md-4" v-for="i of c.card_images">
-                            <img :src="i.image_url_small" class="card-img-top" />
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ c.name }}</h5>
-                                <div><b class="card-item">{{c.race}}&nbsp;{{c.type}}</b></div>
-                                <div><b class="card-item">Texte :</b>
-                                    <p>{{ c.desc }}</p>
+                    <!-- SI RECHERCHE PAR CODE -->
+                    <div v-else>
+                        <div v-for="s of c.card_sets">
+                            <!-- SI CONTIENT LE CODE -->
+                            <div v-if="typeContientCode(s.set_code)">
+                                <!-- SI MONSTRE -->
+                                <div class="row g-0" v-if="typeContientMonstre(c.type)" >
+                                    <div class="col-md-4">
+                                        <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                        <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                        <div><b class="card-item">Extensions : </b></div>
+                                        <div v-for="s of c.card_sets">
+                                            <div>{{s.set_code}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{c.name}}</h5>
+                                            <div><b class="card-item">{{c.type}}</b></div>
+                                            <div><b class="card-item">Niveau :</b>&nbsp;<span v-if="monstreIsLink(c.type)">{{c.linkval}}</span><span v-else>{{c.level}}</span></div>
+                                            <div><b class="card-item">Type :</b>&nbsp;{{c.race}}</div>
+                                            <div><b class="card-item">Attribut :</b>&nbsp;{{c.attribute}}</div>
+                                            <div><b class="card-item">Attaque :</b>&nbsp;{{c.atk}}</div>
+                                            <div><b class="card-item" v-if="monstreIsLink(c.type) == false">Défense :</b>&nbsp;{{c.def}}</div>
+                                            <div><b class="card-item">Texte :</b>
+                                                <p>{{ c.desc }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row g-0 piege" v-if="typeContientPiege(c.type)">
-                        <div class="col-md-4" v-for="i of c.card_images">
-                            <img :src="i.image_url_small" class="card-img-top" />
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ c.name }}</h5>
-                                <div><b class="card-item">{{c.race}}&nbsp;{{c.type}}</b></div>
-                                <div><b class="card-item">Texte :</b>
-                                    <p>{{ c.desc }}</p>
+                                <!-- SI MAGIE -->
+                                <div class="row g-0 magie" v-if="typeContientMagie(c.type)">
+                                    <div class="col-md-4">
+                                        <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                        <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                        <div><b class="card-item">Extensions : </b></div>
+                                        <div v-for="s of c.card_sets">
+                                            <div>{{s.set_code}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ c.name }}</h5>
+                                            <div><b class="card-item">{{c.race}}&nbsp;{{c.type}}</b></div>
+                                            <div><b class="card-item">Texte :</b>
+                                                <p>{{ c.desc }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row g-0 skill" v-if="typeContientSkill(c.type)">
-                        <div class="col-md-4" v-for="i of c.card_images">
-                            <img :src="i.image_url_small" class="card-img-top" />
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                                <h5 class="card-title">{{ c.name }}</h5>
-                                <div><b class="card-item">{{c.type}}</b></div>
-                                <div><b class="card-item">Pour :</b>&nbsp;{{c.race}}</div>
-                                <div><b class="card-item">Texte :</b>
-                                    <p>{{ c.desc }}</p>
+                                <!-- SI PIEGE -->
+                                <div class="row g-0 piege" v-if="typeContientPiege(c.type)">
+                                    <div class="col-md-4">
+                                        <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                        <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                        <div><b class="card-item">Extensions : </b></div>
+                                        <div v-for="s of c.card_sets">
+                                            <div>{{s.set_code}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ c.name }}</h5>
+                                            <div><b class="card-item">{{c.race}}&nbsp;{{c.type}}</b></div>
+                                            <div><b class="card-item">Texte :</b>
+                                                <p>{{ c.desc }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row g-0 jeton" v-if="typeContientToken(c.type)">
-                        <div class="col-md-4" v-for="i of c.card_images">
-                            <img :src="i.image_url_small" class="card-img-top" />
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card-body">
-                            <h5 class="card-title">{{ c.name }}</h5>
-                                <div><b class="card-item">{{c.type}}</b></div>
-                                <div><b class="card-item">Niveau :</b>&nbsp;<span v-if="monstreIsLink(c.type)">{{c.linkval}}</span><span v-else>{{c.level}}</span></div>
-                                <div><b class="card-item">Type :</b>&nbsp;{{c.race}}</div>
-                                <div><b class="card-item">Attribut :</b>&nbsp;{{c.attribute}}</div>
-                                <div><b class="card-item">Attaque :</b>&nbsp;{{c.atk}}</div>
-                                <div><b class="card-item" v-if="monstreIsLink(c.type) == false">Défense :</b>&nbsp;{{c.def}}</div>
-                                <div><b class="card-item">Texte :</b>
-                                    <p>{{ c.desc }}</p>
+                                <!-- SI SKILL -->
+                                <div class="row g-0 skill" v-if="typeContientSkill(c.type)">
+                                    <div class="col-md-4">
+                                        <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                        <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                        <div><b class="card-item">Extensions : </b></div>
+                                        <div v-for="s of c.card_sets">
+                                            <div>{{s.set_code}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <h5 class="card-title">{{ c.name }}</h5>
+                                            <div><b class="card-item">{{c.type}}</b></div>
+                                            <div><b class="card-item">Pour :</b>&nbsp;{{c.race}}</div>
+                                            <div><b class="card-item">Texte :</b>
+                                                <p>{{ c.desc }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- SI TOKEN -->
+                                <div class="row g-0 jeton" v-if="typeContientToken(c.type)">
+                                    <div class="col-md-4">
+                                        <div v-for="i of c.card_images"><img :src="i.image_url_small" class="card-img-top" /></div>
+                                        <div>[<em class="card-item">{{c.id}}</em>]</div>
+                                        <div><b class="card-item">Extensions : </b></div>
+                                        <div v-for="s of c.card_sets">
+                                            <div>{{s.set_code}}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                        <h5 class="card-title">{{ c.name }}</h5>
+                                            <div><b class="card-item">{{c.type}}</b></div>
+                                            <div><b class="card-item">Niveau :</b>&nbsp;<span v-if="monstreIsLink(c.type)">{{c.linkval}}</span><span v-else>{{c.level}}</span></div>
+                                            <div><b class="card-item">Type :</b>&nbsp;{{c.race}}</div>
+                                            <div><b class="card-item">Attribut :</b>&nbsp;{{c.attribute}}</div>
+                                            <div><b class="card-item">Attaque :</b>&nbsp;{{c.atk}}</div>
+                                            <div><b class="card-item" v-if="monstreIsLink(c.type) == false">Défense :</b>&nbsp;{{c.def}}</div>
+                                            <div><b class="card-item">Texte :</b>
+                                                <p>{{ c.desc }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -411,13 +566,32 @@ if (!empty($_POST)) {
             if (typeof chemin != "object") {
                 document.getElementById("recherche").style.display = "block";
                 chemin = chemin.replace(new RegExp('@', 'g'),'&');
+
+                let tmp = chemin.split("&");
+                let ext = null;
+                for (let i=0;i<tmp.length;i++) {
+                    if (tmp[i].includes("ext")) {
+                        console.log(tmp[i]);
+                        let sp = tmp[i].split("=");
+                        ext = sp[1];
+                    }
+                }
+
                 const app = new Vue({
                 el: "#recherche",
                 data: {
                     cartes: [],
-                    url: chemin
+                    url: chemin,
+                    code: ext
                 },
                 methods: {
+                    searchIsCode() {
+                        if (this.ext != null) return this.ext;
+                        else return false;
+                    },
+                    typeContientCode(tmp) {
+                        return tmp.includes(this.code);
+                    },
                     typeContientMonstre(type) {
                         return type.includes("Monster");
                     },
